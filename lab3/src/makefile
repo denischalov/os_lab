@@ -1,17 +1,27 @@
 CC=gcc
 CFLAGS=-I.
+BIN=bin
+OBJ=obj
 
-sequential_min_max : utils.o find_min_max.o utils.h find_min_max.h
-	$(CC) -o sequential_min_max find_min_max.o utils.o sequential_min_max.c $(CFLAGS)
+all: $(BIN)/sequential_min_max $(BIN)/parallel_min_max $(BIN)/exec
 
-parallel_min_max : utils.o find_min_max.o utils.h find_min_max.h
-	$(CC) -o parallel_min_max utils.o find_min_max.o parallel_min_max.c $(CFLAGS)
+$(BIN) $(OBJ):
+	mkdir -p $@
 
-utils.o : utils.h
-	$(CC) -o utils.o -c utils.c $(CFLAGS)
+$(BIN)/sequential_min_max : $(OBJ)/utils.o $(OBJ)/find_min_max.o utils.h find_min_max.h $(BIN)
+	$(CC) -o $@ $(OBJ)/find_min_max.o $(OBJ)/utils.o sequential_min_max.c $(CFLAGS)
 
-find_min_max.o : utils.h find_min_max.h
-	$(CC) -o find_min_max.o -c find_min_max.c $(CFLAGS)
+$(BIN)/parallel_min_max : $(OBJ)/utils.o $(OBJ)/find_min_max.o utils.h find_min_max.h $(BIN)
+	$(CC) -o $@ $(OBJ)/utils.o $(OBJ)/find_min_max.o parallel_min_max.c $(CFLAGS)
+
+$(BIN)/exec : exec.c $(BIN)
+	$(CC) -o $@ exec.c $(CFLAGS)
+
+$(OBJ)/utils.o : utils.c utils.h $(OBJ)
+	$(CC) -o $@ -c utils.c $(CFLAGS)
+
+$(OBJ)/find_min_max.o : find_min_max.c utils.h find_min_max.h $(OBJ)
+	$(CC) -o $@ -c find_min_max.c $(CFLAGS)
 
 clean :
-	rm utils.o find_min_max.o sequential_min_max parallel_min_max
+	rm -rf $(BIN) $(OBJ)
