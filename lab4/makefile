@@ -8,9 +8,12 @@ OBJ = obj
 
 .PHONY: all clean
 
-all: $(BIN)/parallel_min_max
+all: $(BIN)/parallel_min_max $(BIN)/zombie_process
 
 $(BIN)/parallel_min_max: $(OBJ)/parallel_min_max.o $(OBJ)/utils.o $(OBJ)/find_min_max.o | $(BIN)
+	$(CC) -o $@ $^
+
+$(BIN)/zombie_process: $(SRC)/zombie_process.c
 	$(CC) -o $@ $^
 
 $(OBJ)/parallel_min_max.o: $(SRC)/parallel_min_max.c $(INCLUDE)/utils.h $(INCLUDE)/find_min_max.h | $(OBJ)
