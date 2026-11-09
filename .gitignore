@@ -1,0 +1,7 @@
+# Сборка
+bin/
+obj/
+
+# IDE / редакторы
+.vscode/
+.idea/
