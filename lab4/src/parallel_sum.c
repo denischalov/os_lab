@@ -10,22 +10,6 @@
 
 #include "utils.h"
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
-struct SumArgs {
-  int *array;
-  int begin;
-  int end;
-};
-
-long int Sum(const struct SumArgs *args) {
-  long int sum = 0;
-  for (int i = args->begin; i < args->end; i++) {
-    sum += args->array[i];
-  }
-  return sum;
-}
-
 void *ThreadSum(void *args) {
   struct SumArgs *sum_args = (struct SumArgs *)args;
   return (void *)(intptr_t)Sum(sum_args);
