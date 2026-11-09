@@ -220,6 +220,12 @@ int main(int argc, char **argv) {
     }
   }
 
+  struct timeval finish_time;
+  gettimeofday(&finish_time, NULL);
+
+  double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
+  elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
+
   ualarm(0, 0);
 
   bool any_killed = false;
@@ -281,12 +287,6 @@ int main(int argc, char **argv) {
   }
 
   close(mypipe[0]);
-
-  struct timeval finish_time;
-  gettimeofday(&finish_time, NULL);
-
-  double elapsed_time = (finish_time.tv_sec - start_time.tv_sec) * 1000.0;
-  elapsed_time += (finish_time.tv_usec - start_time.tv_usec) / 1000.0;
 
   free(array);
   rmdir("tmp");
