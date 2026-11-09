@@ -8,16 +8,16 @@
 #include <unistd.h>
 
 /* Below is a macro definition */
-#define SHW_ADR(ID, I) (printf("ID %s \t is at virtual address: %8X\n", ID, &I))
+#define SHW_ADR(ID, I) (printf("ID %7s is at virtual address: %8X\n", ID, &I))
 
 extern int etext, edata, end; /* Global variables for process
                                  memory */
 
 char *cptr = "This message is output by the function showit()\n"; /* Static */
 char buffer1[25];
-int showit(); /* Function prototype */
+int showit(char*p); /* Function prototype */
 
-main() {
+int main() {
   int i = 0; /* Automatic variable */
 
   /* Printing addressing information */
