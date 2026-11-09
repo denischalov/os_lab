@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
   if (seed == -1 || array_size == -1 || pnum == -1) {
       fprintf(stderr,
               "Usage: %s --seed NUM --array_size NUM --pnum NUM "
-              "[--timeout[=NUM]] [--by_files]\n",
+              "[--timeout=NUM] [--by_files]\n",
               argv[0]);
       return EXIT_FAILURE;
   }
@@ -128,12 +129,15 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  for (int i = 0; i < pnum; i++) {
-    pid_t child_pid = fork();
-    if (child_pid >= 0) {
-      active_child_processes += 1;
+  if (signal(SIGALRM, alrm_handler) == SIG_ERR) {
+    perror("signal");
+    return 1;
+  }
 
-      if (child_pid == 0) {
+  for (int i = 0; i < pnum; i++) {
+    pid_t pid = fork();
+    if (pid >= 0) {
+      if (pid == 0) {
         close(mypipe[0]);
 
         int begin = (array_size / pnum) * i;
@@ -169,8 +173,14 @@ int main(int argc, char **argv) {
 
         _exit(EXIT_SUCCESS);
       }
+
+      children[nchildren++] = pid;
     } else {
       perror("fork");
+      for (int j = 0; j < nchildren; j++) {
+        kill(children[j], SIGKILL);
+      }
+      while (wait(NULL) > 0);
       close(mypipe[0]);
       close(mypipe[1]);
       return EXIT_FAILURE;
@@ -179,9 +189,58 @@ int main(int argc, char **argv) {
 
   close(mypipe[1]);
 
-  while (active_child_processes > 0) {
-    wait(NULL);
-    active_child_processes -= 1;
+  ualarm(timeout * 1000, 0);
+
+  bool killed[MAX_P] = { false };
+
+  int reaped = 0;
+  while (reaped < pnum) {
+    int status;
+    pid_t r = waitpid(-1, &status, WNOHANG);
+
+    if (r > 0) {
+      reaped++;
+      for (int i = 0; i < nchildren; i++) {
+        if (children[i] == r) {
+          if (WIFSIGNALED(status) || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            killed[i] = true;
+          }
+          children[i] = 0;
+          break;
+        }
+      }
+    } else if (r == 0) {
+      usleep(1000); 
+
+    } else {
+      if (errno == EINTR) continue;
+      if (errno == ECHILD) break;
+      perror("waitpid");
+      break;
+    }
+  }
+
+  ualarm(0, 0);
+
+  bool any_killed = false;
+  for (int i = 0; i < pnum; i++) {
+      if (killed[i]) { 
+        any_killed = true;
+        break;
+      }
+  }
+
+  if (any_killed) {
+    fprintf(stderr, "Timeout: some children were killed by SIGKILL\n");
+    close(mypipe[0]);
+    for (int i = 0; i < pnum; i++) {
+      char file_name[50];
+      snprintf(file_name, sizeof(file_name), "tmp/file%d", i);
+      remove(file_name);
+    }
+    rmdir("tmp");
+    free(array);
+    return EXIT_FAILURE;
   }
 
   struct MinMax min_max;
